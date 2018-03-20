@@ -106,16 +106,17 @@ module.exports = async (request, response) => {
     // Check wiki
 
     let users;
+    const gitlab_repo_uri = `${gitlab_uri}/projects/${repo}`;
 
     try {
-        const result = await got(`${gitlab_uri}/projects/${repo}/wikis/${wiki_slug}`, {
+        const result = await got(`${gitlab_repo_uri}/wikis/${wiki_slug}`, {
             headers: gitlab.tokenHead,
             throwHttpErrors: false,
         });
         if (result.statusCode === 404) {
             // didn't exist. create if POST
             if (grantModify) {
-                await got.post(`${gitlab_uri}/projects/${repo}/wikis`, {
+                await got.post(`${gitlab_repo_uri}/wikis`, {
                     body: `title=${wiki_slug}&content={}`,
                     headers: gitlab.tokenHead,
                 });
@@ -163,7 +164,7 @@ module.exports = async (request, response) => {
     // Push wiki modification
 
     try {
-        const result = await got.put(`${gitlab_uri}/projects/${repo}/wikis/${wiki_slug}`, {
+        const result = await got.put(`${gitlab_repo_uri}/wikis/${wiki_slug}`, {
             headers: gitlab.tokenHead,
             body: `content=${encodeURIComponent(JSON.stringify(users, null, 2))}`
         });
@@ -175,12 +176,12 @@ module.exports = async (request, response) => {
     // Revoke old user, if exist
     if (olduserid) {
         try {
-            const result = await got(`${gitlab_uri}/projects/${repo}/members/${olduserid}`, {
+            const result = await got(`${gitlab_repo_uri}/members/${olduserid}`, {
                 headers: gitlab.tokenHead,
                 throwHttpErrors: false,
             });
             if (response.statusCode === 200) {
-                await got.delete(`${gitlab_uri}/projects/${repo}/members/${olduserid}`, {
+                await got.delete(`${gitlab_repo_uri}/members/${olduserid}`, {
                     headers: gitlab.tokenHead,
                 });
             }
@@ -194,7 +195,7 @@ module.exports = async (request, response) => {
 
     if (username) {
         try {
-            await got.post(`${gitlab_uri}/projects/${repo}/members`, {
+            await got.post(`${gitlab_repo_uri}/members`, {
                 body: `user_id=${userid}&access_level=10`,
                 headers: gitlab.tokenHead,
             });
