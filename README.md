@@ -48,10 +48,12 @@ Required Request Parameters:
 - `invoice`: Invoice number
 - `username`: GitLab registered Username. If not set or empty and `ALLOW_EDIT_AND_DELETE` the operation delete the invoice number from data and revoking the user access.
 
-The microservice will responding a JSON object with following parameters:
+The microservice will respond with human message in the body and either of these codes:
 
-- `status`: (integer) status code (`200` for OK or `403` for denied or `400` for bad request). This also reflected in `xhr.status`.
-- `response`: (string) response message for human.
+- `200`: Access granted
+- `202`: Request valid but won't modify anything (e.g. API performed via `GET`, user already been granted)
+- `400`: Wrong or invalid request (e.g. malformed invoice pattern)
+- `403`: Request rejected (e.g. invoice didn't found, repo didn't match, etc.)
 
 ## License
 
