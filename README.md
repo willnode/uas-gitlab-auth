@@ -39,7 +39,7 @@ By design it only grant one user per one invoice.
 When you give GitLab token to this microservice, it will:
 
 + Grant any registered GitLab user with correct Invoice number as `guest` to the repo.
-+ Autogenerate wiki called `granted_invoices.md` to save a prettified JSON data about invoice number that related to given GitLab user. (you can set this wiki as private for privacy)
++ Autogenerate wiki called `granted_invoices` to save a prettified JSON data about invoice numbers that related to each granted GitLab user. (you can set this wiki as private for privacy)
 
 This microservice speaks `POST`. If you use `GET` any operation will not modify target repo nor modify grant to user (useful for testing).
 
@@ -51,7 +51,7 @@ Required Request Parameters:
 The microservice will respond with human message in the body and either of these codes:
 
 - `200`: Access granted
-- `202`: Request valid but won't modify anything (e.g. API performed via `GET`, user already been granted)
+- `202`: Request valid without any modification (e.g. API performed via `GET`, user already been granted)
 - `400`: Wrong or invalid request (e.g. malformed invoice pattern)
 - `403`: Request rejected (e.g. invoice didn't found, repo didn't match, etc.)
 
