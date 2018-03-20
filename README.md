@@ -54,6 +54,7 @@ The microservice will respond with human message in the body and either of these
 - `202`: Request valid without any modification (e.g. API performed via `GET`, user already been granted)
 - `400`: Wrong or invalid request (e.g. malformed invoice pattern)
 - `403`: Request rejected (e.g. invoice didn't found, repo didn't match, etc.)
+- `500`: Internal error (e.g. token has expired or an issue with the microservice). Check for logs if an user spot this error.
 
 ## License
 

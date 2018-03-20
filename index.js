@@ -2,6 +2,7 @@ const micro = require('micro');
 const url = require('url');
 const controlAccess = require('control-access');
 const got = require('got');
+const bodyparser = require('urlencoded-body-parser')
 
 const uas = {
     token: process.env.UAS_TOKEN,
@@ -10,13 +11,16 @@ const uas = {
 
 const gitlab = {
     token: process.env.GITLAB_TOKEN,
+    tokenHead: {
+        "PRIVATE-TOKEN": process.env.GITLAB_TOKEN
+    },
     repos: (process.env.GITLAB_REPOS || '').split(','),
 };
 
 const options = {
-    allowEditAndDelete: new Boolean(process.env.ALLOW_EDIT_AND_DELETE),
-    allowFree: new Boolean(process.env.ALLOW_FREE_USERS),
-    allowRefunded: new Boolean(process.env.ALLOW_REFUNDED_USERS),
+    allowEditAndDelete: Boolean(process.env.ALLOW_EDIT_AND_DELETE),
+    allowFree: Boolean(process.env.ALLOW_FREE_USERS),
+    allowRefunded: Boolean(process.env.ALLOW_REFUNDED_USERS),
 }
 
 require('./verify')(uas, gitlab);
@@ -35,17 +39,18 @@ module.exports = async (request, response) => {
 
     const grantModify = request.method === `POST`;
     const url_parts = url.parse(request.url, true);
-    const invoice = url_parts.query.invoice;
-    const username = url_parts.query.username;
+    const qs_parts = grantModify ? await bodyparser(request) : url_parts.query;
+    const invoice = qs_parts.invoice;
+    const username = qs_parts.username;
 
     // Sanitization
 
     if (url_parts.pathname !== '/') {
-        return respond(response, 400);
-    } else if (!username && !options.allowEditAndDelete) {
-        return respond(response, 400, `Username is required`);
+        return respond(response, 400, '');
     } else if (!invoice) {
         return respond(response, 400, `Invoice number is required`);
+    } else if ((!username) && (!options.allowEditAndDelete)) {
+        return respond(response, 400, `Username is required`);
     } else if (!/^\d+$/.test(invoice)) {
         return respond(response, 400, `Invalid invoice format. Must only contain digits`);
     } else if (!/^[\w\d_-]+$/.test(username)) {
@@ -85,9 +90,10 @@ module.exports = async (request, response) => {
 
     if (username) {
         try {
-            const result = JSON.parse(await got(`${gitlab_uri}/users?username=${username}`));
-            if (result.length > 0) {
-                userid = result[0].id;
+            const result = await got(`${gitlab_uri}/users?username=${username}`);
+            const parsed = JSON.parse(result.body);
+            if (parsed.length > 0) {
+                userid = parsed[0].id;
             } else {
                 return respond(response, 403, `Username '${username}' is not exist in GitLab`);
             }
@@ -102,16 +108,20 @@ module.exports = async (request, response) => {
     let users;
 
     try {
-        const result = await got(`${gitlab_uri}/projects/${repo}/wikis/${wiki_slug}`);
+        const result = await got(`${gitlab_uri}/projects/${repo}/wikis/${wiki_slug}`, {
+            headers: gitlab.tokenHead,
+            throwHttpErrors: false,
+        });
         if (result.statusCode === 404) {
             // didn't exist. create if POST
             if (grantModify) {
                 await got.post(`${gitlab_uri}/projects/${repo}/wikis`, {
-                    body: `title=${wiki_slug}&content={}`
+                    body: `title=${wiki_slug}&content={}`,
+                    headers: gitlab.tokenHead,
                 });
                 users = {};
             } else {
-                return respond(response, 202, `Will not grant because wiki '${wiki_slug}' didn't exist`);
+                return respond(response, 202, `Will not grant because wiki '${wiki_slug}' didn't exist. Use POST instead.`);
             }
         } else {
             users = JSON.parse(JSON.parse(result.body)[0].content);
@@ -123,8 +133,10 @@ module.exports = async (request, response) => {
 
     // Modify wiki
 
-    if (users[invoice]) {
-        if (users[invoice] === userid) {
+    let olduserid;
+
+    if (olduserid = users[invoice]) {
+        if (olduserid === userid) {
             return respond(response, 202, `Username ${username} already have a grant access to repo '${package}'`);
         }
         else if (options.allowEditAndDelete) {
@@ -148,8 +160,50 @@ module.exports = async (request, response) => {
         }
     }
 
-    // Grant access
+    // Push wiki modification
 
-    response.end('OK');
+    try {
+        const result = await got.put(`${gitlab_uri}/projects/${repo}/wikis/${wiki_slug}`, {
+            headers: gitlab.tokenHead,
+            body: `content=${encodeURIComponent(JSON.stringify(users, null, 2))}`
+        });
+    } catch (error) {
+        console.log(error.response ? error.response.body : error);
+        return respond(response, 500, `Server has failed to push Wiki modification from GitLab API`);
+    }
+
+    // Revoke old user, if exist
+    if (olduserid) {
+        try {
+            const result = await got(`${gitlab_uri}/projects/${repo}/members/${olduserid}`, {
+                headers: gitlab.tokenHead,
+                throwHttpErrors: false,
+            });
+            if (response.statusCode === 200) {
+                await got.delete(`${gitlab_uri}/projects/${repo}/members/${olduserid}`, {
+                    headers: gitlab.tokenHead,
+                });
+            }
+        } catch (error) {
+            console.log(error.response ? error.response.body : error);
+            return respond(response, 500, `Server has failed to revoke access of old user from GitLab API`);
+        }
+    }
+
+    // Grant new user
+
+    if (username) {
+        try {
+            await got.post(`${gitlab_uri}/projects/${repo}/members`, {
+                body: `user_id=${userid}&access_level=10`,
+                headers: gitlab.tokenHead,
+            });
+        } catch (error) {
+            console.log(error.response ? error.response.body : error);
+            return respond(response, 500, `Server has failed to grant the access from GitLab API`);
+        }
+    }
+
+    response.end('Access Granted');
 };
 
