@@ -46,8 +46,10 @@ module.exports = async (request, response) => {
         return respond(response, 400, `Username is required`);
     } else if (!invoice) {
         return respond(response, 400, `Invoice number is required`);
-    } else if (!/\d+/.test(invoice)) {
+    } else if (!/^\d+$/.test(invoice)) {
         return respond(response, 400, `Invalid invoice format. Must only contain digits`);
+    } else if (!/^[\w\d_-]+$/.test(username)) {
+        return respond(response, 400, `Invalid character(s) in username`);
     }
 
     // Check Invoice
@@ -79,6 +81,22 @@ module.exports = async (request, response) => {
 
     // Check username validity
 
+    let userid;
+
+    if (username) {
+        try {
+            const result = JSON.parse(await got(`${gitlab_uri}/users?username=${username}`));
+            if (result.length > 0) {
+                userid = result[0].id;
+            } else {
+                return respond(response, 403, `Username '${username}' is not exist in GitLab`);
+            }
+        } catch (error) {
+            console.log(error.response ? error.response.body : error);
+            return respond(response, 500, `Server has failed from reaching or parsing GitLab Users API`);
+        }
+    }
+
     // Check wiki
 
     let users;
@@ -106,19 +124,28 @@ module.exports = async (request, response) => {
     // Modify wiki
 
     if (users[invoice]) {
-        if (users[invoice] === username) {
+        if (users[invoice] === userid) {
             return respond(response, 202, `Username ${username} already have a grant access to repo '${package}'`);
         }
         else if (options.allowEditAndDelete) {
-            if (username)
-                users[invoice] = username;
-            else
-                delete users[invoice];
+            if (grantModify) {
+                if (username) {
+                    users[invoice] = userid;
+                } else {
+                    delete users[invoice];
+                }
+            } else {
+                return respond(response, 202, `Invoice grant will successfully overrided if request sent with POST`);
+            }
         } else {
-            return respond(response, 403, `Invoice already been granted with username '${users[invoice]}', hence can't be altered`);
+            return respond(response, 403, `Invoice already been granted with user id '${users[invoice]}', hence can't be altered`);
         }
     } else {
-        users[invoice] = username;
+        if (grantModify) {
+            users[invoice] = userid;
+        } else {
+            return respond(response, 202, `Invoice will be granted if request sent with POST`);
+        }
     }
 
     // Grant access
