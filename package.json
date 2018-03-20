@@ -1,0 +1,31 @@
+{
+  "name": "uas-gitlab-auth",
+  "version": "0.1.0",
+  "description": "Microservice to grant access to GitLab private repo using Asset Store Invoice API",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/willnode/uas-gitlab-auth.git"
+  },
+  "keywords": [
+    "unity",
+    "asset-store",
+    "auth",
+    "gitlab",
+    "api",
+    "microservice"
+  ],
+  "author": "willnode",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/willnode/uas-gitlab-auth/issues"
+  },
+  "homepage": "https://github.com/willnode/uas-gitlab-auth#readme",
+  "dependencies": {
+    "control-access": "^0.1.1",
+    "micro": "^9.1.4"
+  }
+}
