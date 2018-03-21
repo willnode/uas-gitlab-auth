@@ -72,6 +72,9 @@ module.exports = async (request, response) => {
 				return respond(response, 400, `Missing Recaptcha`);
 			}
 			const result = await got.post(recaptchaURI, {
+				headers: {
+					'content-type': 'application/x-www-form-urlencoded'
+				},
 				body: `secret=${options.recaptchaToken}&response=${recap}`
 			});
 			const parsed = JSON.parse(result.body);
