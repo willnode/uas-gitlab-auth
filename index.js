@@ -19,13 +19,16 @@ const gitlab = {
 const options = {
 	allowEditAndDelete: Boolean(process.env.ALLOW_EDIT_AND_DELETE),
 	allowFree: Boolean(process.env.ALLOW_FREE_USERS),
-	allowRefunded: Boolean(process.env.ALLOW_REFUNDED_USERS)
+	allowRefunded: Boolean(process.env.ALLOW_REFUNDED_USERS),
+	redirectionURI: process.env.SUCCESS_REDIRECT_TO,
+	recaptchaToken: process.env.RECAPTCHA_TOKEN
 };
 
 require('./verify')(uas, gitlab);
 
 const invoiceURI = 'http://api.assetstore.unity3d.com/publisher/v1/invoice/verify.json';
 const gitlabURI = 'https://gitlab.com/api/v4';
+const recaptchaURI = 'https://www.google.com/recaptcha/api/siteverify';
 const wikiSlug = 'granted_invoices';
 
 const respond = function (response, code, text) {
@@ -58,6 +61,27 @@ module.exports = async (request, response) => {
 	}
 	if (!/^[\w\d_-]+$/.test(username)) {
 		return respond(response, 400, `Invalid character(s) in username`);
+	}
+
+	// Recaptcha (optional)
+
+	if (options.recaptchaToken) {
+		try {
+			const recap = partsQS['g-recaptcha-response'];
+			if (!recap) {
+				return respond(response, 400, `Missing Recaptcha`);
+			}
+			const result = await got.post(recaptchaURI, {
+				body: `secret=${options.recaptchaToken}&response=${recap}`
+			});
+			const parsed = JSON.parse(result.body);
+			if (!parsed.success) {
+				return respond(response, 403, `Recaptcha verification failed`);
+			}
+		} catch (error) {
+			console.log(error.response ? error.response.body : error);
+			return respond(response, 500, `Server has failed from reaching Google Recaptcha API`);
+		}
 	}
 
 	// Check Invoice
@@ -222,6 +246,12 @@ module.exports = async (request, response) => {
 		}
 	}
 
-	response.end('Access Granted');
+	if (options.redirectionURI) {
+		response.writeHead(301, {
+			location: `${options.redirectionURI}?repo=${repo}`
+		});
+	}
+
+	response.end('Success! Login to https://gitlab.com/ and check the invitation!');
 };
 

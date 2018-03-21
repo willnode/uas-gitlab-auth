@@ -32,6 +32,11 @@ Below are optional options to finetune access grants. If you set any non-empty v
 - `ALLOW_FREE_USERS` - Grant access to users that purchase with zero price (e.g. voucher redeem).
 - `ALLOW_REFUNDED_USERS` - Grant access to users that **has** refunded their purchase.
 
+Other optional nice environment variables:
+
+- `RECAPTCHA_TOKEN` - [Google Recaptcha](https://www.google.com/recaptcha/) secret token if you plan to use recaptcha.
+- `SUCCESS_REDIRECT_TO` - If operation success, redirect user to a specific URL. It'll automatically appended with `?repo=xxx` where `xxx` is repo ID.
+
 By design it only grant one user per one invoice.
 
 ## API
