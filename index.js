@@ -130,7 +130,13 @@ module.exports = async (request, response) => {
 				return respond(response, 202, `Will not grant because wiki '${wikiSlug}' didn't exist. Use POST instead.`);
 			}
 		} else {
-			users = JSON.parse(JSON.parse(result.body).content);
+			const content = JSON.parse(result.body).content;
+			try {
+				users = JSON.parse(content);
+			} catch (error) {
+				// Maybe edited by hand?
+				return respond(response, 500, `Server has failed from parsing '${wikiSlug}' because:\n${error}`);
+			}
 		}
 	} catch (error) {
 		console.log(error.response ? error.response.body : error);
@@ -143,7 +149,7 @@ module.exports = async (request, response) => {
 
 	if (olduserid) {
 		if (olduserid === userid) {
-			return respond(response, 202, `Username ${username} already have a grant access to repo '${packagename}'`);
+			return respond(response, 202, `User '${username}' already has an access to repo '${packagename}'`);
 		}
 		if (options.allowEditAndDelete) {
 			if (grantModify) {
@@ -156,20 +162,26 @@ module.exports = async (request, response) => {
 				return respond(response, 202, `Invoice grant will successfully overrided if request sent with POST`);
 			}
 		} else {
-			return respond(response, 403, `Invoice already been granted with user id '${users[invoice]}', hence can't be altered`);
+			return respond(response, 403, `Invoice already been granted with user ID '${users[invoice]}', hence can't be altered`);
 		}
 	} else if (grantModify) {
 		users[invoice] = userid;
 	} else {
-		return respond(response, 202, `Invoice will be granted if request sent with POST`);
+		return respond(response, 202, `User '${username}' will be granted to repo '${packagename}' if request sent with POST`);
 	}
 
 	// Push wiki modification
 
 	try {
 		await got.put(`${gitlabRepoURI}/wikis/${wikiSlug}`, {
-			headers: gitlab.tokenHead,
-			body: `content=${encodeURIComponent(JSON.stringify(users, null, 2))}`
+			headers: {
+				'PRIVATE-TOKEN': gitlab.token,
+				'CONTENT-TYPE': 'application/json'
+			},
+			body: JSON.stringify({
+				title: wikiSlug,
+				content: JSON.stringify(users, null, 2)
+			})
 		});
 	} catch (error) {
 		console.log(error.response ? error.response.body : error);
@@ -200,8 +212,9 @@ module.exports = async (request, response) => {
 	if (username) {
 		try {
 			await got.post(`${gitlabRepoURI}/members`, {
-				body: `user_id=${userid}&access_level=10`,
-				headers: gitlab.tokenHead
+				body: `access_level=10&user_id=${userid}`,
+				headers: gitlab.tokenHead,
+				throwHttpErrors: false
 			});
 		} catch (error) {
 			console.log(error.response ? error.response.body : error);
