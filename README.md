@@ -4,6 +4,8 @@ Microservice to grant access to GitLab private repo using Asset Store Invoice AP
 
 This microservice can handle multiple assets under the same publisher.
 
+> WAIT!!! This microservice will not ready to deploy until **[GitLab fixes the issue](https://gitlab.com/gitlab-org/gitlab-ce/issues/44472)**.
+
 ## Deploy
 
 [![Deploy to now](https://deploy.now.sh/static/button.svg)](https://deploy.now.sh/?repo=https://github.com/willnode/uas-gitlab-auth&env=UAS_TOKEN&env=GITLAB_TOKEN&env=UAS_ASSETS&env=GITLAB_REPOS&env=ACCESS_ALLOW_ORIGIN)

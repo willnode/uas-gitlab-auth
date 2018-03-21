@@ -130,7 +130,7 @@ module.exports = async (request, response) => {
 				return respond(response, 202, `Will not grant because wiki '${wikiSlug}' didn't exist. Use POST instead.`);
 			}
 		} else {
-			users = JSON.parse(JSON.parse(result.body)[0].content);
+			users = JSON.parse(JSON.parse(result.body).content);
 		}
 	} catch (error) {
 		console.log(error.response ? error.response.body : error);
