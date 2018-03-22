@@ -1,8 +1,10 @@
 # uas-gitlab-auth
 
-Microservice to grant access to GitLab private repo using Asset Store Invoice API.
+This is a microservice to grant access to GitLab private repo using Asset Store Invoice API.
 
 This microservice can handle multiple assets under the same publisher.
+
+[Currently used to serve costumers on my site](https://wellosoft.net/grants/)
 
 ## Deploy
 
@@ -11,7 +13,7 @@ This microservice can handle multiple assets under the same publisher.
 OR
 
 ```
-$ now -e NODE_ENV=production -e UAS_TOKEN=xxxx -e GITLAB_TOKEN=xxxx -e UAS_ASSETS=xxxx -e GITLAB_REPOS=xxxx -e ACCESS_ALLOW_ORIGIN=xxxx
+$ now willnode/uas-gitlab-auth -e NODE_ENV=production -e UAS_TOKEN=xxxx -e GITLAB_TOKEN=xxxx -e UAS_ASSETS=xxxx -e GITLAB_REPOS=xxxx -e ACCESS_ALLOW_ORIGIN=xxxx
 ```
 
 OR
@@ -93,4 +95,4 @@ The microservice will respond with human message in the body and either of these
 
 ## License
 
-MIT.
+[MIT](LICENSE).
