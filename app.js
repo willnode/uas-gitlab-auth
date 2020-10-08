@@ -36,7 +36,7 @@ const respond = function (response, code, text) {
 	return text;
 };
 
-module.exports = async (request, response) => {
+const handler = async (request, response) => {
 	controlAccess()(request, response);
 
 	const grantModify = request.method === `POST`;
@@ -258,3 +258,4 @@ module.exports = async (request, response) => {
 	response.end('Success! Login to https://gitlab.com/ and check the invitation!');
 };
 
+require('http').createServer(handler).listen(8080);

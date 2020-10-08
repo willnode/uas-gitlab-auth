@@ -2,7 +2,7 @@
   "name": "uas-gitlab-auth",
   "version": "0.1.0",
   "description": "Microservice to grant access to GitLab private repo using Asset Store Invoice API",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
     "start": "micro",
     "dev": "micro-dev"
@@ -27,18 +27,8 @@
   "homepage": "https://github.com/willnode/uas-gitlab-auth#readme",
   "dependencies": {
     "control-access": "^0.1.1",
-    "got": "^8.3.0",
-    "micro": "^9.1.4",
-    "urlencoded-body-parser": "^2.0.1"
+    "got": "^11.7.0",
+    "urlencoded-body-parser": "^3.0.0"
   },
-  "devDependencies": {
-    "ava": "^0.25.0",
-    "micro-dev": "^2.2.2",
-    "xo": "^0.20.3"
-  },
-  "xo": {
-    "rules": {
-      "complexity": 0
-    }
-  }
+  "devDependencies": {}
 }
