@@ -33,7 +33,7 @@ const wikiSlug = 'granted_invoices';
 
 const respond = function (response, code, text) {
 	response.statusCode = code;
-	return text;
+	response.end(text);
 };
 
 const handler = async (request, response) => {
