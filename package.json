@@ -27,7 +27,7 @@
   "homepage": "https://github.com/willnode/uas-gitlab-auth#readme",
   "dependencies": {
     "control-access": "^0.1.1",
-    "got": "^11.8.5",
+    "got": "^12.5.3",
     "urlencoded-body-parser": "^3.0.0"
   },
   "devDependencies": {}
