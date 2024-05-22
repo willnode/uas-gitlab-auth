@@ -1,6 +1,0 @@
-root: public_html/public
-features:
-- ssl
-commands:
-- git clone https://github.com/willnode/uas-gitlab-auth .
-- npm install --only=prod

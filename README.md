@@ -1,24 +1,16 @@
 # uas-gitlab-auth
 
-This is a microservice to grant access to GitLab private repo using Asset Store Invoice API.
+This is a service to grant access to GitLab private repo using Asset Store Invoice API.
 
 This microservice can handle multiple assets under the same publisher.
 
 [Currently used to serve costumers on my site](https://wellosoft.net/grants/)
 
-## Deploy
+## Install
 
-[![Deploy to now](https://deploy.now.sh/static/button.svg)](https://deploy.now.sh/?repo=https://github.com/willnode/uas-gitlab-auth&env=UAS_TOKEN&env=GITLAB_TOKEN&env=UAS_ASSETS&env=GITLAB_REPOS&env=ACCESS_ALLOW_ORIGIN)
-
-OR
-
-```
-$ now willnode/uas-gitlab-auth -e NODE_ENV=production -e UAS_TOKEN=xxxx -e GITLAB_TOKEN=xxxx -e UAS_ASSETS=xxxx -e GITLAB_REPOS=xxxx -e ACCESS_ALLOW_ORIGIN=xxxx
-```
-
-OR
-
-Deploy to your hosting provider, set the below environment variables, and start it with `npm start`.
++ Install bun
++ Write `.env`
++ `bun start`
 
 ## Enviroment Variables
 
