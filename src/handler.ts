@@ -1,8 +1,8 @@
 import { ServerResponse, IncomingMessage } from 'http';
-
 import { parse } from 'url';
+
 import controlAccess from './cors';
-import { db, gitlab, gitlabURI, invoiceURI, options, recaptchaURI, uas } from './config';
+import { db, gitlab, gitlabURI, invoiceURI, options, recaptchaURI, uas, fetchIt } from './config';
 
 
 const parseUrlEncodedBody = async (request: IncomingMessage) => {
@@ -62,22 +62,18 @@ export const handler = async (request: IncomingMessage, response: ServerResponse
       if (!recap) {
         return respond(response, 400, 'Missing Recaptcha');
       }
-      const result = await fetch(recaptchaURI, {
+      const result = await fetchIt(recaptchaURI, {
         method: 'POST',
         headers: {
           'content-type': 'application/x-www-form-urlencoded'
         },
         body: `secret=${options.recaptchaToken}&response=${recap}`
       });
-      if (!result.ok) {
-        throw new Error(await result.json());
-      }
       const parsed = await result.json();
       if (!parsed.success) {
         return respond(response, 403, 'Recaptcha verification failed');
       }
     } catch (error: any) {
-      console.log(error?.message || error);
       return respond(response, 500, 'Server has failed from reaching Google Recaptcha API');
     }
   }
@@ -87,7 +83,7 @@ export const handler = async (request: IncomingMessage, response: ServerResponse
   let packagename;
 
   try {
-    const result = await fetch(`${invoiceURI}?key=${uas.token}&invoice=${invoice}`);
+    const result = await fetchIt(`${invoiceURI}?key=${encodeURIComponent(uas.token)}&invoice=${encodeURIComponent(invoice)}`);
     const parsed = await result.json();
     if (parsed.invoices.length === 0) {
       return respond(response, 403, 'Invoice is not available');
@@ -106,7 +102,6 @@ export const handler = async (request: IncomingMessage, response: ServerResponse
 
     repo = gitlab.repos[targetIdx];
   } catch (error) {
-    console.log(error);
     return respond(response, 500, 'Server has failed from reaching Unity Invoice API');
   }
 
@@ -115,7 +110,10 @@ export const handler = async (request: IncomingMessage, response: ServerResponse
 
   if (username) {
     try {
-      const result = await fetch(`${gitlabURI}/users?username=${username}`);
+      const result = await fetchIt(`${gitlabURI}/users?username=${encodeURIComponent(username)}`, {
+        headers: gitlab.tokenHead,
+        method: 'GET'
+      });
       const parsed = await result.json();
       if (parsed.length > 0) {
         userid = parsed[0].id;
@@ -151,12 +149,12 @@ export const handler = async (request: IncomingMessage, response: ServerResponse
   // Revoke old user, if exist
   if (dbInvoice && dbInvoice.userid) {
     try {
-      const result = await fetch(`${gitlabRepoURI}/members/${dbInvoice.userid}`, {
+      const result = await fetchIt(`${gitlabRepoURI}/members/${dbInvoice.userid}`, {
         headers: gitlab.tokenHead,
         method: 'GET'
       });
       if (result.status === 200) {
-        await fetch(`${gitlabRepoURI}/members/${dbInvoice.userid}`, {
+        await fetchIt(`${gitlabRepoURI}/members/${dbInvoice.userid}`, {
           headers: gitlab.tokenHead,
           method: 'DELETE'
         });
@@ -170,16 +168,12 @@ export const handler = async (request: IncomingMessage, response: ServerResponse
   // Grant new user
   if (username) {
     try {
-      var result = await fetch(`${gitlabRepoURI}/members`, {
+      await fetchIt(`${gitlabRepoURI}/members`, {
         method: 'POST',
         headers: gitlab.tokenHead,
         body: JSON.stringify({ access_level: 10, user_id: userid })
       });
-      if (!result.ok) {
-        throw new Error(await result.json());
-      }
     } catch (error: any) {
-      console.log(error?.message || error);
       return respond(response, 500, 'Server has failed to grant access from GitLab API');
     }
   }

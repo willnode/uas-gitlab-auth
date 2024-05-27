@@ -11,14 +11,15 @@ export const db = knex({
 });
 
 export const uas = {
-    token: process.env.UAS_TOKEN,
+    token: process.env.UAS_TOKEN || '',
     assets: (process.env.UAS_ASSETS || '').split(',')
 };
 
 export const gitlab = {
     token: process.env.GITLAB_TOKEN,
     tokenHead: {
-        'PRIVATE-TOKEN': process.env.GITLAB_TOKEN || ''
+        'PRIVATE-TOKEN': process.env.GITLAB_TOKEN || '',
+        'content-type': 'application/json',
     },
     repos: (process.env.GITLAB_REPOS || '').split(',')
 };
@@ -36,3 +37,15 @@ export const invoiceURI = 'http://api.assetstore.unity3d.com/publisher/v1/invoic
 export const gitlabURI = 'https://gitlab.com/api/v4';
 export const recaptchaURI = 'https://www.google.com/recaptcha/api/siteverify';
 
+export async function fetchIt(url: string | Request | URL, init?: FetchRequestInit | undefined): Promise<Response> {
+    try {
+        var result = await fetch(url, init);
+        if (!result.ok) {
+            throw new Error("Error fetch: " + (await result.text()));
+        }
+        return result;
+    } catch (error: any) {
+        console.error(error);
+        throw error;
+    }
+} 
