@@ -69,12 +69,15 @@ export const handler = async (request: IncomingMessage, response: ServerResponse
         },
         body: `secret=${options.recaptchaToken}&response=${recap}`
       });
+      if (!result.ok) {
+        throw new Error(await result.json());
+      }
       const parsed = await result.json();
       if (!parsed.success) {
         return respond(response, 403, 'Recaptcha verification failed');
       }
-    } catch (error) {
-      console.log(error);
+    } catch (error: any) {
+      console.log(error?.message || error);
       return respond(response, 500, 'Server has failed from reaching Google Recaptcha API');
     }
   }
@@ -133,21 +136,13 @@ export const handler = async (request: IncomingMessage, response: ServerResponse
       return respond(response, 202, `User '${username}' already has access to repo '${packagename}'`);
     }
     if (options.allowEditAndDelete) {
-      if (grantModify) {
-        if (username) {
-          await db('invoices').where({ invoice }).update({ userid });
-        } else {
-          await db('invoices').where({ invoice }).del();
-        }
-      } else {
+      if (!grantModify) {
         return respond(response, 202, `Invoice grant will be successfully overridden if request sent with POST`);
       }
     } else {
       return respond(response, 403, `Invoice already granted with user ID '${dbInvoice.userid}', hence can't be altered`);
     }
-  } else if (grantModify) {
-    await db('invoices').insert({ invoice, userid });
-  } else {
+  } else if (!grantModify) {
     return respond(response, 202, `User '${username}' will be granted access to repo '${packagename}' if request sent with POST`);
   }
 
@@ -175,15 +170,36 @@ export const handler = async (request: IncomingMessage, response: ServerResponse
   // Grant new user
   if (username) {
     try {
-      await fetch(`${gitlabRepoURI}/members`, {
+      var result = await fetch(`${gitlabRepoURI}/members`, {
         method: 'POST',
         headers: gitlab.tokenHead,
         body: JSON.stringify({ access_level: 10, user_id: userid })
       });
-    } catch (error) {
-      console.log(error);
+      if (!result.ok) {
+        throw new Error(await result.json());
+      }
+    } catch (error: any) {
+      console.log(error?.message || error);
       return respond(response, 500, 'Server has failed to grant access from GitLab API');
     }
+  }
+
+
+  if (dbInvoice) {
+    if (dbInvoice.userid === userid) {
+      return respond(response, 202, `User '${username}' already has access to repo '${packagename}'`);
+    }
+    if (options.allowEditAndDelete) {
+      if (grantModify) {
+        if (username) {
+          await db('invoices').where({ invoice }).update({ userid });
+        } else {
+          await db('invoices').where({ invoice }).del();
+        }
+      }
+    }
+  } else if (grantModify) {
+    await db('invoices').insert({ invoice, userid });
   }
 
   if (options.redirectionURI) {
